@@ -41,13 +41,13 @@
         // API Key 必須保持為空字串，由執行環境自動注入，否則會導致 404 (找不到預覽版模型) 錯誤
         const apiKey = ""; 
 
-        // 預設建議問題
+        // 預設建議問題 (加入單純查法條情境)
         const suggestedQuestions = [
+            "請問民法第184條的完整內容和記憶口訣是什麼？",
+            "什麼是「無權代理」？跟「無權處分」差在哪裡？",
             "甲今年16歲，拿壓歲錢去機車行買了一台10萬元的機車，請問契約有效嗎？",
             "員工開車送貨時不小心撞傷路人，老闆需要連帶賠償嗎？",
-            "簽約賣房子，結果交屋前遇到大地震房子倒了，買家還要付錢嗎？",
-            "請問死亡宣告的要件跟年限是什麼？",
-            "什麼是「無權代理」？跟「無權處分」差在哪裡？"
+            "簽約賣房子，結果交屋前遇到大地震房子倒了，買家還要付錢嗎？"
         ];
 
         // 圖示組件
@@ -57,6 +57,7 @@
             Send: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
             Scale: () => <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h18"/></svg>,
             BookOpen: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+            FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             Target: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
             Lightbulb: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>,
             AlertTriangle: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
@@ -94,7 +95,7 @@
             const [messages, setMessages] = useState([
                 { 
                     sender: 'bot', 
-                    text: '你好！我是搭載 AI 的「民法解答神器」。\n您可以輸入任何民法觀念或實例題，我會自動為您分析案情、用白話文解釋，並為您標示適用的民法條文與國考解題秘訣！',
+                    text: '你好！我是搭載 AI 的「民法解答神器」。\n您可以輸入任何民法實例題，或是直接輸入法條（例如：民法第188條），我會為您列出「完整法條內容」、「白話解析」以及專屬的「記憶口訣」！',
                     isWelcome: true
                 }
             ]);
@@ -117,9 +118,6 @@
 
             // 呼叫 Gemini AI 取得解答
             const generateAnswer = async (query) => {
-                // 關鍵修正：系統環境的攔截器需要「完全吻合」的字串寫法。
-                // 若無自訂 Key，我們必須精確使用預設的 URL 格式，以觸發環境的自動金鑰注入。
-                // 若有自訂 Key，則切換至一般的公開模型 gemini-2.5-flash。
                 let url = "";
                 if (savedApiKey) {
                     url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${savedApiKey}`;
@@ -133,19 +131,25 @@
                             text: `你是一位台灣民法考試（國家考試、特考、轉學考）的超強補教名師。
                             請依據台灣《民法》最新規定解答。
                             
-                            你的任務是幫助考生「秒懂」並「快速記憶」。
-                            請務必遵守以下答題風格：
-                            1. 白話解析必須「極度精簡」、「精確簡短」，最好能用 1~3 句話直接切中要害。
-                            2. 善用「條列式」、「箭頭 (→)」或「公式」來拆解法律關係。
-                            3. 針對考點給出明確結論（例如：有效、無效、效力未定）。
-                            4. 必須提供一段「精確解答」，這是專門給考生寫在考卷上拿分的標準法律用語與重點寫法。
+                            針對考生的輸入，請判斷是「單純查詢法條」還是「實例題或觀念題」：
                             
-                            必須輸出 JSON 格式，包含以下五個欄位：
-                            1. title: 核心考點主題（如：無權代理、188條僱用人責任）
-                            2. explanation: 極精簡的白話解析與結論（方便考生背誦的短句）
-                            3. precise_answer: 精確解答（考試容易拿分的重點寫法，適合直接寫在申論題或選擇題上）
-                            4. articles: 適用法條（如：民法第 188 條）
-                            5. tips: 考試秘訣（給出口訣、常考陷阱或秒殺解題技巧）` 
+                            【情境一：單純查詢法條】（例如輸入：民法第184條、188條）
+                            1. 必須在 article_content 提供「完整法條內容」。
+                            2. 必須給出極精簡的「白話文解析」。
+                            3. 必須在 tips 欄位給出專屬的「記憶口訣」，幫助考生快速背誦條文要件。
+                            
+                            【情境二：實例題或觀念題】
+                            1. 白話解析必須「極度精簡」、「精確簡短」，最好能用 1~3 句話切中要害。
+                            2. 善用「條列式」、「箭頭 (→)」來拆解法律關係，給出明確結論（如：有效、無效）。
+                            3. 必須在 precise_answer 提供一段專門給考生寫在考卷上拿分的標準法律用語與重點寫法。
+                            
+                            必須輸出 JSON 格式，包含以下六個欄位（若該情境不需要該欄位則填「無」）：
+                            1. title: 核心考點主題或法條名稱（如：無權代理、民法第188條 僱用人責任）
+                            2. article_content: 完整法條內容（查詢法條時必填，實例題可視情況提供核心條文）
+                            3. explanation: 極精簡的白話解析與結論（方便背誦的短句）
+                            4. precise_answer: 精確解答（考試容易拿分的重點寫法）
+                            5. articles: 適用法條（如：民法第 188 條）
+                            6. tips: 考試秘訣與記憶口訣（務必提供「記憶口訣」幫助記憶，以及常考陷阱）` 
                         }]
                     },
                     contents: [{ parts: [{ text: query }] }],
@@ -155,12 +159,13 @@
                             type: "OBJECT",
                             properties: {
                                 title: { type: "STRING" },
+                                article_content: { type: "STRING" },
                                 explanation: { type: "STRING" },
                                 precise_answer: { type: "STRING" },
                                 articles: { type: "STRING" },
                                 tips: { type: "STRING" }
                             },
-                            required: ["title", "explanation", "precise_answer", "articles", "tips"]
+                            required: ["title", "article_content", "explanation", "precise_answer", "articles", "tips"]
                         }
                     }
                 };
@@ -362,6 +367,18 @@
                                                 {msg.data.title}
                                             </h3>
                                             
+                                            {/* 完整法條內容 (新區塊) */}
+                                            {msg.data.article_content && msg.data.article_content !== "無" && (
+                                                <div className="bg-slate-100/80 rounded-xl p-3.5 border border-slate-200">
+                                                    <h4 className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                                                        <Icons.FileText /> 完整法條內容
+                                                    </h4>
+                                                    <p className="text-slate-800 text-[15px] leading-relaxed whitespace-pre-wrap text-justify">
+                                                        {msg.data.article_content}
+                                                    </p>
+                                                </div>
+                                            )}
+
                                             <div>
                                                 <h4 className="text-sm font-bold text-slate-500 mb-2 flex items-center gap-1">
                                                     白話解析
@@ -371,32 +388,41 @@
                                                 </p>
                                             </div>
 
-                                            <div className="bg-emerald-50/80 rounded-xl p-3.5 border border-emerald-100">
-                                                <h4 className="text-sm font-bold text-emerald-800 mb-1.5 flex items-center gap-1.5">
-                                                    <Icons.Target /> 精確解答 (考試拿分寫法)
-                                                </h4>
-                                                <p className="text-emerald-900 text-[15px] leading-relaxed whitespace-pre-wrap">
-                                                    {msg.data.precise_answer}
-                                                </p>
-                                            </div>
+                                            {/* 精確解答 */}
+                                            {msg.data.precise_answer && msg.data.precise_answer !== "無" && (
+                                                <div className="bg-emerald-50/80 rounded-xl p-3.5 border border-emerald-100">
+                                                    <h4 className="text-sm font-bold text-emerald-800 mb-1.5 flex items-center gap-1.5">
+                                                        <Icons.Target /> 精確解答 (考試拿分寫法)
+                                                    </h4>
+                                                    <p className="text-emerald-900 text-[15px] leading-relaxed whitespace-pre-wrap">
+                                                        {msg.data.precise_answer}
+                                                    </p>
+                                                </div>
+                                            )}
                                             
-                                            <div className="bg-blue-50/80 rounded-xl p-3.5 border border-blue-100">
-                                                <h4 className="text-sm font-bold text-blue-800 mb-1.5 flex items-center gap-1.5">
-                                                    <Icons.BookOpen /> 適用法條
-                                                </h4>
-                                                <p className="text-blue-900 font-medium tracking-wide">
-                                                    {msg.data.articles}
-                                                </p>
-                                            </div>
+                                            {/* 適用法條 */}
+                                            {msg.data.articles && msg.data.articles !== "無" && (
+                                                <div className="bg-blue-50/80 rounded-xl p-3.5 border border-blue-100">
+                                                    <h4 className="text-sm font-bold text-blue-800 mb-1.5 flex items-center gap-1.5">
+                                                        <Icons.BookOpen /> 適用法條
+                                                    </h4>
+                                                    <p className="text-blue-900 font-medium tracking-wide">
+                                                        {msg.data.articles}
+                                                    </p>
+                                                </div>
+                                            )}
 
-                                            <div className="bg-amber-50/80 rounded-xl p-3.5 border border-amber-100">
-                                                <h4 className="text-sm font-bold text-amber-800 mb-1.5 flex items-center gap-1.5">
-                                                    <Icons.Lightbulb /> 考試秘訣
-                                                </h4>
-                                                <p className="text-amber-900 text-[15px] leading-relaxed">
-                                                    {msg.data.tips.replace('【考試秘訣】', '').replace('【解題技巧】', '')}
-                                                </p>
-                                            </div>
+                                            {/* 考試秘訣與記憶口訣 */}
+                                            {msg.data.tips && msg.data.tips !== "無" && (
+                                                <div className="bg-amber-50/80 rounded-xl p-3.5 border border-amber-100">
+                                                    <h4 className="text-sm font-bold text-amber-800 mb-1.5 flex items-center gap-1.5">
+                                                        <Icons.Lightbulb /> 考試秘訣 & 記憶口訣
+                                                    </h4>
+                                                    <p className="text-amber-900 text-[15px] leading-relaxed whitespace-pre-wrap">
+                                                        {msg.data.tips.replace('【考試秘訣】', '').replace('【解題技巧】', '').replace('【記憶口訣】', '')}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
